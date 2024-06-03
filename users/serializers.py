@@ -46,14 +46,6 @@ class UserSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(**validated_data)
         return user
 
-    def update(self, instance, validated_data):
-        if 'role' in validated_data:
-            raise serializers.ValidationError('Role cannot be updated.')
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
-
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -73,3 +65,29 @@ class LoginSerializer(serializers.Serializer):
                 'access': str(refresh.access_token),
             }
         raise serializers.ValidationError('Incorrect credentials')
+
+
+class UserChangeProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ('first_name', 'last_name', 'address', 'email', 'phone')
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+            'address': {'required': True},
+            'email': {'required': False},
+            'phone': {'required': True},
+        }
+
+    def validate(self, data):
+        if CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
+            raise serializers.ValidationError('This phone number is already taken.')
+        if data.get('email') and CustomUser.objects.exclude(pk=self.instance.pk).filter(email=data['email']).exists():
+            raise serializers.ValidationError('This email is already taken.')
+        if 'role' in data:
+            raise serializers.ValidationError('You cannot change your role.')
+        if 'username' in data:
+            raise serializers.ValidationError('You cannot change your username.')
+        if 'password' in data:
+            raise serializers.ValidationError('You cannot change your password.')
+        return data
