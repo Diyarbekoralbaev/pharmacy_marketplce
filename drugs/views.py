@@ -85,3 +85,16 @@ class DrugDetailView(APIView):
         serializer = DrugSerializer(drug)
         return Response(serializer.data)
     
+class DrugSearchView(APIView):
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('List of drugs fetched successfully.'),
+            400: openapi.Response('Bad Request')
+        }
+    )
+    def get(self, request):
+        query = request.query_params.get('query')
+        drugs = Drug.objects.filter(name__icontains=query)
+        serializer = DrugSerializer(drugs, many=True)
+        return Response(serializer.data)
+    
