@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import UserSerializer, LoginSerializer
+from .serializers import UserSerializer, LoginSerializer, UserChangeProfileSerializer
 from .models import CustomUser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_yasg.utils import swagger_auto_schema
@@ -54,15 +54,18 @@ class UserMeView(APIView):
         serializer = UserSerializer(request_user)
         return Response(serializer.data)
     @swagger_auto_schema(
-        request_body=UserSerializer,
+        request_body=UserChangeProfileSerializer,
         responses={
             200: openapi.Response('User details updated successfully.'),
             400: openapi.Response('Bad Request')
         }
     )
     def put(self, request):
-        user = request.user
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        serializer = UserChangeProfileSerializer(request_user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -115,7 +118,7 @@ class UserDetailView(APIView):
             return Response(serializer.data)
         return Response('You are not authorized to view this page.')
     @swagger_auto_schema(
-        request_body=UserSerializer,
+        request_body=UserChangeProfileSerializer,
         responses={
             200: openapi.Response('User details updated successfully.'),
             400: openapi.Response('Bad Request')
@@ -152,5 +155,6 @@ class UserDetailView(APIView):
         except Exception as e:
             return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
         if request_user.role == 'admin' or request_user == user:
+            user.delete()
             return Response('User deleted successfully.')
         return Response('You are not authorized to view this page.')
