@@ -56,13 +56,14 @@ class DrugSerializer(serializers.ModelSerializer):
 class DrugUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'name', 'description', 'price', 'image',)
+        fields = ('id', 'name', 'description', 'price', 'image', 'quantity')
         extra_kwargs = {
             'id': {'read_only': True},
             'name': {'required': False},
             'description': {'required': False},
             'price': {'required': False},
             'image': {'required': False},
+            'quantity': {'required': False},
         }
 
     def validate(self, data):
