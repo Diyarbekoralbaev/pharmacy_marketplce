@@ -1,11 +1,12 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import UserSerializer, LoginSerializer, UserChangeProfileSerializer
+from .serializers import UserSerializer, LoginSerializer, UserChangeProfileSerializer, UserForgotPasswordSerializer, UserResetPasswordSerializer
 from .models import CustomUser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from .utils import generate_otp, verify_otp
 
 
 class CreateUserView(APIView):
@@ -158,3 +159,64 @@ class UserDetailView(APIView):
             user.delete()
             return Response('User deleted successfully.')
         return Response('You are not authorized to view this page.')
+
+
+class UserChangePasswordView(APIView):
+    permission_classes = (IsAuthenticated,)
+    @swagger_auto_schema(
+        request_body=UserChangeProfileSerializer,
+        responses={
+            200: openapi.Response('Password changed successfully.'),
+            400: openapi.Response('Bad Request')
+        }
+    )
+    def post(self, request):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        serializer = UserChangeProfileSerializer(request_user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
+
+
+class UserForgotPasswordView(APIView):
+    permission_classes = (AllowAny,)
+    @swagger_auto_schema(
+        request_body=UserForgotPasswordSerializer,
+        responses={
+            200: openapi.Response('OTP sent successfully.'),
+            400: openapi.Response('Bad Request')
+        }
+    )
+    def post(self, request):
+        serializer = UserForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data['phone']
+        otp = generate_otp(phone)
+        return Response({'message': 'OTP sent successfully.', 'otp': otp})
+
+
+class UserResetPasswordView(APIView):
+    permission_classes = (AllowAny,)
+    @swagger_auto_schema(
+        request_body=UserResetPasswordSerializer,
+        responses={
+            200: openapi.Response('Password reset successfully.'),
+            400: openapi.Response('Bad Request')
+        }
+    )
+    def post(self, request):
+        serializer = UserResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data['phone']
+        otp = serializer.validated_data['otp_code']
+        password = serializer.validated_data['password']
+        if verify_otp(phone, otp):
+            user = CustomUser.objects.get(phone=phone)
+            user.set_password(password)
+            user.save()
+            return Response({'message': 'Password reset successfully.'})
+        return Response({'error': 'OTP verification failed.'}, status=400)
