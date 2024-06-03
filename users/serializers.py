@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'first_name', 'last_name', 'address', 'email', 'phone', 'date_joined', 'role')
+        fields = ('id', 'username', 'first_name', 'last_name', 'address', 'email', 'phone', 'date_joined', 'role', 'password')
         extra_kwargs = {
             'id': {'read_only': True},
             'username': {'required': True},
@@ -18,6 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
             'phone': {'required': True},
             'role': {'required': True},
             'date_joined': {'read_only': True},
+            'password': {'write_only': True},
         }
 
     def validate(self, data):
@@ -46,6 +47,8 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        if 'role' in validated_data:
+            raise serializers.ValidationError('Role cannot be updated.')
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -57,7 +60,12 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
     def validate(self, data):
-        user = authenticate(**data)
+        username = data.get('username')
+        password = data.get('password')
+        if not username or not password:
+            raise serializers.ValidationError("Username and password are required.")
+
+        user = authenticate(username=username, password=password)
         if user and user.is_active:
             refresh = RefreshToken.for_user(user)
             return {
