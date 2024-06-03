@@ -91,3 +91,35 @@ class UserChangeProfileSerializer(serializers.ModelSerializer):
         if 'password' in data:
             raise serializers.ValidationError('You cannot change your password.')
         return data
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField()
+    new_password = serializers.CharField()
+
+    def validate(self, data):
+        if not self.context['request'].user.check_password(data.get('old_password')):
+            raise serializers.ValidationError('Old password is incorrect.')
+        if data.get('old_password') == data.get('new_password'):
+            raise serializers.ValidationError('New password should be different from the old password.')
+        return data
+
+
+class UserForgotPasswordSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+
+
+class UserResetPasswordSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+    otp_code = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        phone = data.get('phone')
+        otp_code = data.get('otp_code')
+        password = data.get('password')
+        if not phone or not otp_code or not password:
+            raise serializers.ValidationError('Phone, OTP code, and password are required.')
+        if not CustomUser.objects.filter(phone=phone).exists():
+            raise serializers.ValidationError('User not found.')
+        return data
