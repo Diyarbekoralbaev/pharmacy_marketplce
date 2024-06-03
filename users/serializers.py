@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'first_name', 'last_name', 'address', 'email', 'phone', 'photo', 'date_joined', 'role')
+        fields = ('id', 'username', 'first_name', 'last_name', 'address', 'email', 'phone', 'date_joined', 'role')
         extra_kwargs = {
             'id': {'read_only': True},
             'username': {'required': True},
@@ -17,21 +17,30 @@ class UserSerializer(serializers.ModelSerializer):
             'email': {'required': False},
             'phone': {'required': True},
             'role': {'required': True},
-            'photo': {'required': False},
             'date_joined': {'read_only': True},
         }
 
     def validate(self, data):
         if self.instance:
-            return data
-        if CustomUser.objects.filter(username=data['username']).exists():
-            raise serializers.ValidationError('This username is already taken.')
-        if CustomUser.objects.filter(phone=data['phone']).exists():
-            raise serializers.ValidationError('This phone number is already taken.')
-        if CustomUser.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError('This email is already taken.')
-        if CustomUser.objects.filter(role=data['role']) not in CustomUser.ROLE_CHOICES:
+            # On update, avoid validating unique fields that belong to the current instance
+            if CustomUser.objects.exclude(pk=self.instance.pk).filter(username=data['username']).exists():
+                raise serializers.ValidationError('This username is already taken.')
+            if CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
+                raise serializers.ValidationError('This phone number is already taken.')
+            if data.get('email') and CustomUser.objects.exclude(pk=self.instance.pk).filter(email=data['email']).exists():
+                raise serializers.ValidationError('This email is already taken.')
+        else:
+            # On creation, ensure unique fields are not already taken
+            if CustomUser.objects.filter(username=data['username']).exists():
+                raise serializers.ValidationError('This username is already taken.')
+            if CustomUser.objects.filter(phone=data['phone']).exists():
+                raise serializers.ValidationError('This phone number is already taken.')
+            if data.get('email') and CustomUser.objects.filter(email=data['email']).exists():
+                raise serializers.ValidationError('This email is already taken.')
+
+        if data['role'] not in dict(CustomUser.ROLE_CHOICES):
             raise serializers.ValidationError('This role is not valid.')
+
         return data
 
     def create(self, validated_data):
@@ -39,13 +48,8 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
-        instance.username = validated_data.get('username', instance.username)
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.address = validated_data.get('address', instance.address)
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.role = validated_data.get('role', instance.role)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
         return instance
 
