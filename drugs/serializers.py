@@ -39,6 +39,12 @@ class DrugSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("Image is required.")
         
+        if 'quantity' in data:
+            quantity = data['quantity']
+            if not isinstance(quantity, int):
+                raise serializers.ValidationError("Quantity must be an integer.")
+            if quantity < 0:
+                raise serializers.ValidationError("Quantity must be greater than 0.")
         return data
 
 
@@ -84,6 +90,12 @@ class DrugUpdateSerializer(serializers.ModelSerializer):
             if image.size > IMAGE_MAX_SIZE:
                 raise serializers.ValidationError("Image must be less than 5MB.")
         
+        if 'quantity' in data:
+            quantity = data['quantity']
+            if not isinstance(quantity, int):
+                raise serializers.ValidationError("Quantity must be an integer.")
+            if quantity < 0:
+                raise serializers.ValidationError("Quantity must be greater than 0.")
         return data
 
     def update(self, instance, validated_data):
