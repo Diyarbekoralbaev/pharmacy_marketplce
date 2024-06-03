@@ -6,13 +6,15 @@ from .models import Drug
 class DrugSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'name', 'description', 'price', 'image')
+        fields = ('id', 'name', 'description', 'price', 'image', 'created_at', 'quantity')
         extra_kwargs = {
             'id': {'read_only': True},
             'name': {'required': True},
             'description': {'required': True},
             'price': {'required': True},
             'image': {'required': True},
+            'created_at': {'read_only': True},
+            'quantity': {'required': True},
         }
 
     def validate(self, data):
@@ -54,7 +56,7 @@ class DrugSerializer(serializers.ModelSerializer):
 class DrugUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'name', 'description', 'price', 'image')
+        fields = ('id', 'name', 'description', 'price', 'image',)
         extra_kwargs = {
             'id': {'read_only': True},
             'name': {'required': False},
