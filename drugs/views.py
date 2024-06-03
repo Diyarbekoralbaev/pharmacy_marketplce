@@ -43,3 +43,18 @@ class UpdateDrugView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors)
 
+class DeleteDrugView(APIView):
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Drug deleted successfully.'),
+            400: openapi.Response('Bad Request')
+        }
+    )
+    def delete(self, request, pk):
+        try:
+            drug = Drug.objects.get(pk=pk)
+        except Drug.DoesNotExist:
+            return Response({'error': 'Drug does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+        drug.delete()
+        return Response({'message': 'Drug deleted successfully.'})
+    
