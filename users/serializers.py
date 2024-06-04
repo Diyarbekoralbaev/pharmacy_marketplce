@@ -22,26 +22,36 @@ class UserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
         }
 
-    def validate(self, data):
-        if data['role'] not in dict(CustomUser.ROLE_CHOICES):
+    def validate_role(self, value):
+        if value not in dict(CustomUser.ROLE_CHOICES):
             raise serializers.ValidationError('This role is not valid.')
-        if data.get('role') == 'seller' and not data.get('business_name'):
-            raise serializers.ValidationError('Business name is required for sellers.')
-        if data.get('role') == 'buyer' and data.get('business_name'):
-            raise serializers.ValidationError('Buyers cannot have a business name.')
-        if self.instance:
-            if CustomUser.objects.exclude(pk=self.instance.pk).filter(username=data['username']).exists() and CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
-                raise serializers.ValidationError('This username is already taken and this phone number is already taken.')
-            if data.get('email') and CustomUser.objects.exclude(pk=self.instance.pk).filter(email=data['email']).exists():
-                raise serializers.ValidationError('This email is already taken.')
-        else:
-            if CustomUser.objects.filter(username=data['username']).exists():
-                raise serializers.ValidationError('This username is already taken.')
-            if CustomUser.objects.filter(phone=data['phone']).exists():
-                raise serializers.ValidationError('This phone number is already taken.')
-            if data.get('email') and CustomUser.objects.filter(email=data['email']).exists():
-                raise serializers.ValidationError('This email is already taken.')
+        return value
 
+    def validate_business_name(self, value):
+        role = self.initial_data.get('role')
+        if role == 'buyer' and value:
+            raise serializers.ValidationError('Buyers cannot have a business name.')
+        if role == 'seller' and not value:
+            raise serializers.ValidationError('Business name is required for sellers.')
+        return value
+
+    def validate_username(self, value):
+        if CustomUser.objects.filter(username=value).exists():
+            raise serializers.ValidationError('This username is already taken.')
+        return value
+
+    def validate_phone(self, value):
+        if CustomUser.objects.filter(phone=value).exists():
+            raise serializers.ValidationError('This phone number is already taken.')
+        return value
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError('This email is already taken.')
+        return value
+
+    def validate(self, data):
+        data = super().validate(data)
         return data
 
     def create(self, validated_data):
@@ -56,17 +66,24 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         username = data.get('username')
         password = data.get('password')
-        if not username or not password:
-            raise serializers.ValidationError("Username and password are required.")
+
+        if not username:
+            raise serializers.ValidationError('Username is required.')
+        if not password:
+            raise serializers.ValidationError('Password is required.')
 
         user = authenticate(username=username, password=password)
-        if user and user.is_active:
-            refresh = RefreshToken.for_user(user)
-            return {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        raise serializers.ValidationError('Incorrect credentials')
+
+        if user is None:
+            raise serializers.ValidationError('Incorrect credentials.')
+        if not user.is_active:
+            raise serializers.ValidationError('User account is disabled.')
+
+        refresh = RefreshToken.for_user(user)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
 
 
 class UserChangeProfileSerializer(serializers.ModelSerializer):
@@ -81,13 +98,21 @@ class UserChangeProfileSerializer(serializers.ModelSerializer):
             'phone': {'required': True},
         }
 
-    def validate(self, data):
-        if data.get('role') == 'buyer' and data.get('business_name'):
-            raise serializers.ValidationError('Buyers cannot add a business name.')
-        if CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
+    def validate_phone(self, value):
+        if CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=value).exists():
             raise serializers.ValidationError('This phone number is already taken.')
-        if data.get('email') and CustomUser.objects.exclude(pk=self.instance.pk).filter(email=data['email']).exists():
+        return value
+
+    def validate_email(self, value):
+        if CustomUser.objects.exclude(pk=self.instance.pk).filter(email=value).exists():
             raise serializers.ValidationError('This email is already taken.')
+        return value
+
+    def validate(self, data):
+
+        if self.instance.role == 'buyer' and 'business_name' in data:
+            raise serializers.ValidationError('Buyers cannot add a business name.')
+
         if 'role' in data:
             raise serializers.ValidationError('You cannot change your role.')
         if 'username' in data:
@@ -104,9 +129,8 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate(self, data):
         if not self.context['request'].user.check_password(data.get('old_password')):
             raise serializers.ValidationError('Old password is incorrect.')
-        if data.get('old_password') == data.get('new_password'):
-            raise serializers.ValidationError('New password should be different from the old password.')
-        return data
+        if self.context['request'].user.check_password(data.get('new_password')):
+            raise serializers.ValidationError('New password must be different from the old password.')
 
 
 class UserForgotPasswordSerializer(serializers.Serializer):
