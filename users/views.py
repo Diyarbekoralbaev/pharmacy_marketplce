@@ -13,7 +13,7 @@ class CreateUserView(APIView):
     @swagger_auto_schema(
         request_body=UserSerializer,
         responses={
-            200: openapi.Response('User created successfully.'),
+            201: openapi.Response('User created successfully.'),
             400: openapi.Response('Bad Request')
         }
     )
@@ -21,8 +21,8 @@ class CreateUserView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginView(APIView):
@@ -35,8 +35,9 @@ class LoginView(APIView):
     )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data)
+        if serializer.is_valid():
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserMeView(APIView):
@@ -44,7 +45,8 @@ class UserMeView(APIView):
     @swagger_auto_schema(
         responses={
             200: openapi.Response('User details fetched successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.')
         }
     )
     def get(self, request):
@@ -53,12 +55,13 @@ class UserMeView(APIView):
         except Exception as e:
             return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         serializer = UserSerializer(request_user)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     @swagger_auto_schema(
         request_body=UserChangeProfileSerializer,
         responses={
             200: openapi.Response('User details updated successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.')
         }
     )
     def put(self, request):
@@ -69,8 +72,8 @@ class UserMeView(APIView):
         serializer = UserChangeProfileSerializer(request_user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserListView(APIView):
@@ -78,7 +81,10 @@ class UserListView(APIView):
     @swagger_auto_schema(
         responses={
             200: openapi.Response('User list fetched successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('No users found.'),
+            500: openapi.Response('An error occurred.')
         }
     )
     def get(self, request):
@@ -90,12 +96,12 @@ class UserListView(APIView):
             try:
                 users = CustomUser.objects.all()
             except CustomUser.DoesNotExist:
-                return Response({'error': 'No users found.'}, status=404)
+                return Response({'error': 'No users found.'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
-                return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
+                return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             serializer = UserSerializer(users, many=True)
-            return Response(serializer.data)
-        return Response('You are not authorized to view this page.')
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UserDetailView(APIView):
@@ -103,7 +109,10 @@ class UserDetailView(APIView):
     @swagger_auto_schema(
         responses={
             200: openapi.Response('User details fetched successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('User not found.'),
+            500: openapi.Response('An error occurred.')
         }
     )
     def get(self, request, pk):
@@ -111,18 +120,20 @@ class UserDetailView(APIView):
         try:
             user = CustomUser.objects.get(pk=pk)
         except CustomUser.DoesNotExist:
-            return Response({'error': 'User not found.'}, status=404)
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
+            return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if request_user.role == 'admin' or request_user == user:
             serializer = UserSerializer(user)
-            return Response(serializer.data)
-        return Response('You are not authorized to view this page.')
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
     @swagger_auto_schema(
         request_body=UserChangeProfileSerializer,
         responses={
             200: openapi.Response('User details updated successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('User not found.')
         }
     )
     def put(self, request, pk):
@@ -135,13 +146,16 @@ class UserDetailView(APIView):
             serializer = UserSerializer(user, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors)
-        return Response('You are not authorized to view this page.')
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
     @swagger_auto_schema(
         responses={
             200: openapi.Response('User deleted successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('User not found.'),
+            500: openapi.Response('An error occurred.')
         }
     )
     def delete(self, request, pk):
@@ -152,13 +166,13 @@ class UserDetailView(APIView):
         try:
             user = CustomUser.objects.get(pk=pk)
         except CustomUser.DoesNotExist:
-            return Response({'error': 'User not found.'}, status=404)
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
+            return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if request_user.role == 'admin' or request_user == user:
             user.delete()
-            return Response('User deleted successfully.')
-        return Response('You are not authorized to view this page.')
+            return Response('User deleted successfully.', status=status.HTTP_200_OK)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UserChangePasswordView(APIView):
@@ -167,7 +181,8 @@ class UserChangePasswordView(APIView):
         request_body=UserChangeProfileSerializer,
         responses={
             200: openapi.Response('Password changed successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.')
         }
     )
     def post(self, request):
@@ -178,8 +193,8 @@ class UserChangePasswordView(APIView):
         serializer = UserChangeProfileSerializer(request_user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserForgotPasswordView(APIView):
@@ -193,10 +208,11 @@ class UserForgotPasswordView(APIView):
     )
     def post(self, request):
         serializer = UserForgotPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        phone = serializer.validated_data['phone']
-        otp = generate_otp(phone)
-        return Response({'message': 'OTP sent successfully.', 'otp': otp})
+        if serializer.is_valid():
+            phone = serializer.validated_data['phone']
+            otp = generate_otp(phone)
+            return Response({'otp': otp}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserResetPasswordView(APIView):
@@ -210,13 +226,14 @@ class UserResetPasswordView(APIView):
     )
     def post(self, request):
         serializer = UserResetPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        phone = serializer.validated_data['phone']
-        otp = serializer.validated_data['otp_code']
-        password = serializer.validated_data['password']
-        if verify_otp(phone, otp):
-            user = CustomUser.objects.get(phone=phone)
-            user.set_password(password)
-            user.save()
-            return Response({'message': 'Password reset successfully.'})
-        return Response({'error': 'OTP verification failed.'}, status=400)
+        if serializer.is_valid():
+            phone = serializer.validated_data['phone']
+            otp = serializer.validated_data['otp']
+            password = serializer.validated_data['password']
+            if verify_otp(phone, otp):
+                user = CustomUser.objects.get(phone=phone)
+                user.set_password(password)
+                user.save()
+                return Response('Password reset successfully.', status=status.HTTP_200_OK)
+            return Response('Invalid OTP.', status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
