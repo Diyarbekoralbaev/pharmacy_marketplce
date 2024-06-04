@@ -6,7 +6,7 @@ from .models import Drug
 class DrugSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'name', 'description', 'price', 'image', 'created_at', 'quantity')
+        fields = ('id', 'name', 'description', 'price', 'image', 'created_at', 'quantity', 'category', 'manufacturer_country', 'manufacturer', 'active_substance', 'type', 'dozens')
         extra_kwargs = {
             'id': {'read_only': True},
             'name': {'required': True},
@@ -15,6 +15,13 @@ class DrugSerializer(serializers.ModelSerializer):
             'image': {'required': True},
             'created_at': {'read_only': True},
             'quantity': {'required': True},
+            'category': {'required': True},
+            'manufacturer_country': {'required': True},
+            'manufacturer': {'required': True},
+            'active_substance': {'required': True},
+            'type': {'required': True},
+            'dozens': {'required': True},
+            
         }
 
     def validate(self, data):
