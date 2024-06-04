@@ -94,7 +94,7 @@ class DrugSerializer(serializers.ModelSerializer):
 class DrugUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'drug_name', 'description', 'price', 'image', 'quantity')
+        fields = ('id', 'drug_name', 'description', 'price', 'image', 'quantity', 'category', 'manufacturer_country', 'manufacturer', 'active_substance', 'type', 'dozens', 'expiration_date', 'brand')
         extra_kwargs = {
             'drug_name': {'required': False},
             'description': {'required': False},
