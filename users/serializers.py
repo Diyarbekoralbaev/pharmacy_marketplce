@@ -7,12 +7,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'first_name', 'last_name', 'address', 'email', 'phone', 'date_joined', 'role', 'password')
+        fields = ('id', 'username', 'first_name', 'last_name', 'business_name', 'address', 'email', 'phone', 'date_joined', 'role', 'password')
         extra_kwargs = {
             'id': {'read_only': True},
             'username': {'required': True},
             'first_name': {'required': True},
             'last_name': {'required': True},
+            'business_name': {'required': False},
             'address': {'required': True},
             'email': {'required': False},
             'phone': {'required': True},
@@ -22,11 +23,15 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
+        if data['role'] not in dict(CustomUser.ROLE_CHOICES):
+            raise serializers.ValidationError('This role is not valid.')
+        if data.get('role') == 'seller' and not data.get('business_name'):
+            raise serializers.ValidationError('Business name is required for sellers.')
+        if data.get('role') == 'buyer' and data.get('business_name'):
+            raise serializers.ValidationError('Buyers cannot have a business name.')
         if self.instance:
-            if CustomUser.objects.exclude(pk=self.instance.pk).filter(username=data['username']).exists():
-                raise serializers.ValidationError('This username is already taken.')
-            if CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
-                raise serializers.ValidationError('This phone number is already taken.')
+            if CustomUser.objects.exclude(pk=self.instance.pk).filter(username=data['username']).exists() and CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
+                raise serializers.ValidationError('This username is already taken and this phone number is already taken.')
             if data.get('email') and CustomUser.objects.exclude(pk=self.instance.pk).filter(email=data['email']).exists():
                 raise serializers.ValidationError('This email is already taken.')
         else:
@@ -36,9 +41,6 @@ class UserSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('This phone number is already taken.')
             if data.get('email') and CustomUser.objects.filter(email=data['email']).exists():
                 raise serializers.ValidationError('This email is already taken.')
-
-        if data['role'] not in dict(CustomUser.ROLE_CHOICES):
-            raise serializers.ValidationError('This role is not valid.')
 
         return data
 
@@ -80,6 +82,8 @@ class UserChangeProfileSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
+        if data.get('role') == 'buyer' and data.get('business_name'):
+            raise serializers.ValidationError('Buyers cannot add a business name.')
         if CustomUser.objects.exclude(pk=self.instance.pk).filter(phone=data['phone']).exists():
             raise serializers.ValidationError('This phone number is already taken.')
         if data.get('email') and CustomUser.objects.exclude(pk=self.instance.pk).filter(email=data['email']).exists():
