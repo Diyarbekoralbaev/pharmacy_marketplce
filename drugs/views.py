@@ -15,8 +15,10 @@ class CreateDrugView(APIView):
     @swagger_auto_schema(
         request_body=DrugSerializer,
         responses={
-            200: openapi.Response('Drug created successfully.'),
-            400: openapi.Response('Bad Request')
+            201: openapi.Response('Drug created successfully.'),
+            400: openapi.Response('Bad Request'),
+            403: openapi.Response('Forbidden'),
+            500: openapi.Response('Internal Server Error'),
         }
     )
     def post(self, request):
@@ -24,22 +26,27 @@ class CreateDrugView(APIView):
             request_user = request.user
         except Exception as e:
             return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        if request_user.role != 'seller':
+        if request_user.role == 'buyer':
             return Response({'error': 'You do not have permission to create a drug.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = DrugSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
 
 class UpdateDrugView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
         request_body=DrugUpdateSerializer,
         responses={
             200: openapi.Response('Drug updated successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            403: openapi.Response('Forbidden'),
+            404: openapi.Response('Not Found'),
+            500: openapi.Response('Internal Server Error'),
         }
     )
     def put(self, request, pk):
@@ -59,7 +66,7 @@ class UpdateDrugView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteDrugView(APIView):
@@ -67,7 +74,9 @@ class DeleteDrugView(APIView):
     @swagger_auto_schema(
         responses={
             200: openapi.Response('Drug deleted successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            403: openapi.Response('Forbidden'),
+            404: openapi.Response('Not Found'),
         }
     )
     def delete(self, request, pk):
@@ -91,7 +100,8 @@ class ListDrugView(APIView):
     @swagger_auto_schema(
         responses={
             200: openapi.Response('List of drugs fetched successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            404: openapi.Response('Not Found'),
         }
     )
     def get(self, request):
@@ -107,7 +117,8 @@ class DrugDetailView(APIView):
     @swagger_auto_schema(
         responses={
             200: openapi.Response('Drug details fetched successfully.'),
-            400: openapi.Response('Bad Request')
+            400: openapi.Response('Bad Request'),
+            404: openapi.Response('Not Found'),
         }
     )
     def get(self, request, pk):
