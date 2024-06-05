@@ -179,9 +179,13 @@ class OrderSerializer(serializers.ModelSerializer):
             'total_price': {'read_only': True},
         }
 
-        def create(self, validated_data):
-            items_data = validated_data.pop('items')
-            order = OrderModel.objects.create(**validated_data)
-            for item_data in items_data:
-                OrderItemModel.objects.create(order=order, **item_data)
-            return order
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        order = OrderModel.objects.create(**validated_data)
+        total_price = 0
+        for item_data in items_data:
+            OrderItemModel.objects.create(order=order, **item_data)
+            total_price += item_data['price']
+        order.total_price = total_price
+        order.save()
+        return order
