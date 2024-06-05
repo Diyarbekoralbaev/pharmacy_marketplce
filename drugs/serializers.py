@@ -83,7 +83,6 @@ class DrugSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Category must contain only letters.")
         return value
 
-
     def create(self, validated_data):
         drug = Drug.objects.create(**validated_data)
         return drug
@@ -127,7 +126,7 @@ class DrugUpdateSerializer(serializers.ModelSerializer):
     def validate_image(self, value):
         IMAGE_FILE_TYPES = ['png', 'jpg', 'jpeg']
         IMAGE_MAX_SIZE = 5242880
-        if not value.drug_name.endswith(tuple(IMAGE_FILE_TYPES)):
+        if not value.name.endswith(tuple(IMAGE_FILE_TYPES)):
             raise serializers.ValidationError("Image must be a PNG, JPG, or JPEG file.")
         if value.size > IMAGE_MAX_SIZE:
             raise serializers.ValidationError("Image must be less than 5MB.")
@@ -171,11 +170,6 @@ class DrugUpdateSerializer(serializers.ModelSerializer):
     def validate_category(self, value):
         if not value.isalpha():
             raise serializers.ValidationError("Category must contain only letters.")
-        return value
-
-    def validate_seller(self, value):
-        if not value.role == 'seller':
-            raise serializers.ValidationError("Seller must be a seller.")
         return value
     
 
