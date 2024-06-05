@@ -7,7 +7,7 @@ from .models import Drug
 class DrugSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'drug_name', 'description', 'price', 'image', 'created_at', 'quantity', 'category', 'manufacturer_country', 'manufacturer', 'active_substance', 'type', 'dozens', 'expiration_date', 'brand')
+        fields = ('id', 'drug_name', 'description', 'price', 'image', 'created_at', 'quantity', 'category', 'manufacturer_country', 'manufacturer', 'active_substance', 'type', 'dozens', 'expiration_date', 'brand', 'seller')
         extra_kwargs = {
             'id': {'read_only': True},
             'drug_name': {'required': True},
@@ -24,9 +24,8 @@ class DrugSerializer(serializers.ModelSerializer):
             'dozens': {'required': True},
             'expiration_date': {'required': True},
             'brand': {'required': False},
-
+            'seller': {'read_only': True},
         }
-
 
     def validate_expiration_date(self, value):
         if value < datetime.date.today():
@@ -45,7 +44,7 @@ class DrugSerializer(serializers.ModelSerializer):
     def validate_image(self, value):
         IMAGE_FILE_TYPES = ['png', 'jpg', 'jpeg']
         IMAGE_MAX_SIZE = 5242880
-        if not value.drug_name.endswith(tuple(IMAGE_FILE_TYPES)):
+        if not value.name.endswith(tuple(IMAGE_FILE_TYPES)):
             raise serializers.ValidationError("Image must be a PNG, JPG, or JPEG file.")
         if value.size > IMAGE_MAX_SIZE:
             raise serializers.ValidationError("Image must be less than 5MB.")
@@ -78,7 +77,12 @@ class DrugSerializer(serializers.ModelSerializer):
         if not value.isalpha():
             raise serializers.ValidationError("Manufacturer must contain only letters.")
         return value
-        
+
+    def validate_category(self, value):
+        if not value.isalpha():
+            raise serializers.ValidationError("Category must contain only letters.")
+        return value
+
 
     def create(self, validated_data):
         drug = Drug.objects.create(**validated_data)
@@ -94,7 +98,7 @@ class DrugSerializer(serializers.ModelSerializer):
 class DrugUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drug
-        fields = ('id', 'drug_name', 'description', 'price', 'image', 'quantity', 'category', 'manufacturer_country', 'manufacturer', 'active_substance', 'type', 'dozens', 'expiration_date', 'brand')
+        fields = ('id', 'drug_name', 'description', 'price', 'image', 'quantity', 'category', 'manufacturer_country', 'manufacturer', 'active_substance', 'type', 'dozens', 'expiration_date', 'brand', 'seller')
         extra_kwargs = {
             'drug_name': {'required': False},
             'description': {'required': False},
@@ -109,7 +113,7 @@ class DrugUpdateSerializer(serializers.ModelSerializer):
             'expiration_date': {'required': False},
             'brand': {'required': False},
             'category': {'required': False},
-            
+            'seller': {'read_only': True},
         }
 
     def validate_price(self, value):
@@ -167,6 +171,11 @@ class DrugUpdateSerializer(serializers.ModelSerializer):
     def validate_category(self, value):
         if not value.isalpha():
             raise serializers.ValidationError("Category must contain only letters.")
+        return value
+
+    def validate_seller(self, value):
+        if not value.role == 'seller':
+            raise serializers.ValidationError("Seller must be a seller.")
         return value
     
 
