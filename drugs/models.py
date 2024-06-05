@@ -16,6 +16,7 @@ class Drug(models.Model):
     active_substance = models.CharField(max_length=100)
     type = models.CharField(max_length=100)
     dozens = models.IntegerField(default=0, blank=False,)
+    seller = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.drug_name
