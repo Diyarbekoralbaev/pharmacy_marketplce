@@ -1,13 +1,14 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import UserSerializer, LoginSerializer, UserChangeProfileSerializer, UserForgotPasswordSerializer, UserResetPasswordSerializer
-from .models import CustomUser
+from .serializers import UserSerializer, LoginSerializer, UserChangeProfileSerializer, UserForgotPasswordSerializer, UserResetPasswordSerializer, \
+    OrderSerializer, OrderItemSerializer
+from .models import CustomUser, OrderModel, OrderItemModel
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .utils import generate_otp, verify_otp
-
+from drugs.models import Drug
 
 class CreateUserView(APIView):
     @swagger_auto_schema(
@@ -237,3 +238,126 @@ class UserResetPasswordView(APIView):
                 return Response('Password reset successfully.', status=status.HTTP_200_OK)
             return Response('Invalid OTP.', status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrderListCreateView(APIView):
+    permission_classes = (IsAuthenticated,)
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Order list fetched successfully.'),
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('No orders found.'),
+            500: openapi.Response('An error occurred.')
+        },
+        tags=['Orders']
+    )
+    def get(self, request):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            orders = OrderModel.objects.filter(user=request_user)
+        except OrderModel.DoesNotExist:
+            return Response({'error': 'No orders found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    @swagger_auto_schema(
+        request_body=OrderSerializer,
+        responses={
+            201: openapi.Response('Order created successfully.'),
+            400: openapi.Response('Bad Request')
+        },
+        tags=['Orders']
+    )
+    def post(self, request):
+        serializer = OrderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            order = OrderModel.objects.get(pk=serializer.data['id'])
+            items = serializer.data['items']
+            for item in items:
+                OrderItemModel.objects.create(order=order, drug_id=item['drug'], quantity=item['quantity'], price=item['price'])
+                Drug.objects.update(quantity=Drug.objects.get(pk=item['drug']).quantity - item['quantity'])
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrderDetailView(APIView):
+    permission_classes = (IsAuthenticated,)
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Order details fetched successfully.'),
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('Order not found.'),
+            500: openapi.Response('An error occurred.')
+        },
+        tags=['Orders']
+    )
+    def get(self, request, pk):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            order = OrderModel.objects.get(pk=pk)
+        except OrderModel.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if request_user.role == 'admin' or request_user == order.user:
+            serializer = OrderSerializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
+    @swagger_auto_schema(
+        request_body=OrderSerializer,
+        responses={
+            200: openapi.Response('Order details updated successfully.'),
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('Order not found.')
+        },
+        tags=['Orders']
+    )
+    def put(self, request, pk):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        order = OrderModel.objects.get(pk=pk)
+        if request_user.role == 'admin' or request_user == order.user:
+            serializer = OrderSerializer(order, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Order deleted successfully.'),
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('Order not found.'),
+            500: openapi.Response('An error occurred.')
+        },
+        tags=['Orders']
+    )
+    def delete(self, request, pk):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            order = OrderModel.objects.get(pk=pk)
+        except OrderModel.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if request_user.role == 'admin' or request_user == order.user:
+            order.delete()
+            return Response('Order deleted successfully.', status=status.HTTP_200_OK)
+        return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
