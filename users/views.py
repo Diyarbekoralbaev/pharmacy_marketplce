@@ -38,7 +38,7 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -277,12 +277,14 @@ class OrderListCreateView(APIView):
     def post(self, request):
         serializer = OrderSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user)
-            order = OrderModel.objects.get(pk=serializer.data['id'])
-            items = serializer.data['items']
-            for item in items:
-                OrderItemModel.objects.create(order=order, drug_id=item['drug'], quantity=item['quantity'], price=item['price'])
-                Drug.objects.update(quantity=Drug.objects.get(pk=item['drug']).quantity - item['quantity'])
+            order = serializer.save(user=request.user)
+            for item in serializer.validated_data['items']:
+                drug = Drug.objects.get(pk=item['drug'].id)
+                if drug.quantity < item['quantity']:
+                    order.delete()
+                    return Response({f"error": f"Insufficient quantity of {drug.drug_name}. Available quantity is {drug.quantity}."}, status=status.HTTP_400_BAD_REQUEST)
+                drug.quantity -= item['quantity']
+                drug.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
