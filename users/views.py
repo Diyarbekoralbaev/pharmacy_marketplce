@@ -10,6 +10,7 @@ from drf_yasg import openapi
 from .utils import generate_otp, verify_otp
 from drugs.models import Drug
 
+
 class CreateUserView(APIView):
     @swagger_auto_schema(
         request_body=UserSerializer,
