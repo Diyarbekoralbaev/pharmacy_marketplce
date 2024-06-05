@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_yasg',
     'django_redis',
+    'corsheaders',
 
     'users',
     'drugs',
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -158,3 +160,10 @@ CACHES = {
         }
     }
 }
+
+CORS_ALLOW_ALL_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:8000',
+    'http://pdp.araltech.tech',
+    'https://pdp.araltech.tech',
+]
