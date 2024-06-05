@@ -30,8 +30,10 @@ class CreateDrugView(APIView):
             return Response({'error': 'You do not have permission to create a drug.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = DrugSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            if request_user.role == 'seller' or request_user.role == 'admin':
+                serializer.save(seller=request_user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response({'error': 'You do not have permission to create a drug.'}, status=status.HTTP_403_FORBIDDEN)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -64,7 +66,7 @@ class UpdateDrugView(APIView):
             return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         serializer = DrugUpdateSerializer(drug, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(seller=request_user)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
