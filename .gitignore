@@ -154,5 +154,5 @@ cython_debug/
 ./.idea/workspace.xml
 
 static/
-media/
+#media/
 staticfiles/
