@@ -12,6 +12,7 @@ schema_view = get_schema_view(
       default_version='v1',
       description="An API for a pharmacy marketplace",
    ),
+   url='https://pdp.araltech.tech',
    public=True,
    permission_classes=(permissions.AllowAny,),
 )
