@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:6
+    volumes:
+      - redis_data:/data
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-+mpcpcql9g1%r_v*a2iny5gqtdynr@t_$zd)xam9jzq_&l()u*
+      - REDIS_URL=redis://redis:6379/1
+
+volumes:
+  redis_data:
