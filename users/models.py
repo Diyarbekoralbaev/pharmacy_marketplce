@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from drugs.models import Drug
 
 
 class CustomUser(AbstractUser):
@@ -34,3 +35,38 @@ class CustomUser(AbstractUser):
             models.Index(fields=['phone']),
         ]
 
+
+class OrderModel(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f'Order by {self.user.username}'
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class OrderItemModel(models.Model):
+    order = models.ForeignKey(OrderModel, related_name='items', on_delete=models.CASCADE)
+    drug = models.ForeignKey(Drug, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f'{self.quantity} of {self.drug.drug_name} in Order by {self.order.user.username}'
+
+    class Meta:
+        ordering = ['order']
