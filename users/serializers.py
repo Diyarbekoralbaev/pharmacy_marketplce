@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, OrderModel, OrderItemModel
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -30,9 +30,9 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_business_name(self, value):
         role = self.initial_data.get('role')
         if role == 'buyer' and value:
-            raise serializers.ValidationError('Buyers cannot have a business name.')
+            raise serializers.ValidationError('Buyers cannot have a business drug_name.')
         if role == 'seller' and not value:
-            raise serializers.ValidationError('Business name is required for sellers.')
+            raise serializers.ValidationError('Business drug_name is required for sellers.')
         return value
 
     def validate_username(self, value):
@@ -111,7 +111,7 @@ class UserChangeProfileSerializer(serializers.ModelSerializer):
     def validate(self, data):
 
         if self.instance.role == 'buyer' and 'business_name' in data:
-            raise serializers.ValidationError('Buyers cannot add a business name.')
+            raise serializers.ValidationError('Buyers cannot add a business drug_name.')
 
         if 'role' in data:
             raise serializers.ValidationError('You cannot change your role.')
@@ -151,3 +151,37 @@ class UserResetPasswordSerializer(serializers.Serializer):
         if not CustomUser.objects.filter(phone=phone).exists():
             raise serializers.ValidationError('User not found.')
         return data
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItemModel
+        fields = ('id', 'drug', 'quantity', 'price')
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'drug': {'required': True},
+            'quantity': {'required': True},
+            'price': {'required': True},
+        }
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True)
+
+    class Meta:
+        model = OrderModel
+        fields = ('id', 'user', 'created_at', 'status', 'total_price', 'items')
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'user': {'read_only': True},
+            'created_at': {'read_only': True},
+            'status': {'required': False},
+            'total_price': {'read_only': True},
+        }
+
+        def create(self, validated_data):
+            items_data = validated_data.pop('items')
+            order = OrderModel.objects.create(**validated_data)
+            for item_data in items_data:
+                OrderItemModel.objects.create(order=order, **item_data)
+            return order
