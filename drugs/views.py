@@ -7,6 +7,7 @@ from .serializers import DrugSerializer, DrugUpdateSerializer
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.core.cache import cache
 
 
 class CreateDrugView(APIView):
@@ -22,6 +23,7 @@ class CreateDrugView(APIView):
         }
     )
     def post(self, request):
+        cache.delete('drugs')
         try:
             request_user = request.user
         except Exception as e:
@@ -52,6 +54,8 @@ class UpdateDrugView(APIView):
         }
     )
     def put(self, request, pk):
+        cache.delete('drugs')
+        cache.delete(f'drug-{pk}')
         try:
             request_user = request.user
         except Exception as e:
@@ -82,6 +86,8 @@ class DeleteDrugView(APIView):
         }
     )
     def delete(self, request, pk):
+        cache.delete('drugs')
+        cache.delete(f'drug-{pk}')
         try:
             request_user = request.user
         except Exception as e:
@@ -107,12 +113,18 @@ class ListDrugView(APIView):
         }
     )
     def get(self, request):
-        try:
-            drugs = Drug.objects.all()
-        except Exception as e:
-            return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
-        serializer = DrugSerializer(drugs, many=True)
-        return Response(serializer.data)
+        cache_key = 'drugs'
+        data = cache.get(cache_key)
+        if data:
+            return Response(data)
+        else:
+            try:
+                drugs = Drug.objects.all()
+            except Exception as e:
+                return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
+            serializer = DrugSerializer(drugs, many=True)
+            cache.set(cache_key, serializer.data, timeout=600)  # 10 minutes
+            return Response(serializer.data)
 
 
 class DrugDetailView(APIView):
@@ -124,6 +136,10 @@ class DrugDetailView(APIView):
         }
     )
     def get(self, request, pk):
+        cache_key = f'drug-{pk}'
+        data = cache.get(cache_key)
+        if data:
+            return Response(data)
         try:
             drug = Drug.objects.get(pk=pk)
         except Drug.DoesNotExist:
@@ -131,6 +147,7 @@ class DrugDetailView(APIView):
         except Exception as e:
             return Response({'error': 'An error occurred.', 'message': str(e)}, status=500)
         serializer = DrugSerializer(drug)
+        cache.set(cache_key, serializer.data, timeout=600)  # 10 minutes
         return Response(serializer.data)
 
 
