@@ -163,9 +163,5 @@ CACHES = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://pdp.araltech.tech",
-    "https://pdp.araltech.tech",
-    "http://localhost:3000",
-    "http://localhost:8000",
-]
+
+CORS_ALLOW_CREDENTIALS = True
