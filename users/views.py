@@ -14,6 +14,8 @@ from drugs.models import Drug
 class CreateUserView(APIView):
     @swagger_auto_schema(
         request_body=UserSerializer,
+        operation_summary='Sign Up',
+        operation_description='For signing up a new user.',
         responses={
             201: openapi.Response('User created successfully.'),
             400: openapi.Response('Bad Request')
@@ -30,6 +32,8 @@ class CreateUserView(APIView):
 class LoginView(APIView):
     @swagger_auto_schema(
         request_body=LoginSerializer,
+        operation_summary='Login',
+        operation_description='For logging in a user.',
         responses={
             200: openapi.Response('Login successful.'),
             400: openapi.Response('Bad Request')
@@ -45,6 +49,8 @@ class LoginView(APIView):
 class UserMeView(APIView):
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
+        operation_summary='Get user details',
+        operation_description='For fetching the details of the logged-in user.',
         responses={
             200: openapi.Response('User details fetched successfully.'),
             400: openapi.Response('Bad Request'),
@@ -60,6 +66,8 @@ class UserMeView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     @swagger_auto_schema(
         request_body=UserChangeProfileSerializer,
+        operation_summary='Update user details',
+        operation_description='For updating the details of the logged-in user.',
         responses={
             200: openapi.Response('User details updated successfully.'),
             400: openapi.Response('Bad Request'),
@@ -81,6 +89,8 @@ class UserMeView(APIView):
 class UserListView(APIView):
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
+        operation_summary='Get user list',
+        operation_description='For fetching the list of all users.',
         responses={
             200: openapi.Response('User list fetched successfully.'),
             400: openapi.Response('Bad Request'),
@@ -109,6 +119,8 @@ class UserListView(APIView):
 class UserDetailView(APIView):
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
+        operation_summary='Get user details',
+        operation_description='For fetching the details of a user.',
         responses={
             200: openapi.Response('User details fetched successfully.'),
             400: openapi.Response('Bad Request'),
@@ -131,6 +143,8 @@ class UserDetailView(APIView):
         return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
     @swagger_auto_schema(
         request_body=UserChangeProfileSerializer,
+        operation_summary='Update user details',
+        operation_description='For updating the details of a user.',
         responses={
             200: openapi.Response('User details updated successfully.'),
             400: openapi.Response('Bad Request'),
@@ -152,6 +166,8 @@ class UserDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
     @swagger_auto_schema(
+        operation_summary='Delete user',
+        operation_description='For deleting a user.',
         responses={
             200: openapi.Response('User deleted successfully.'),
             400: openapi.Response('Bad Request'),
@@ -181,6 +197,8 @@ class UserChangePasswordView(APIView):
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
         request_body=UserChangeProfileSerializer,
+        operation_summary='Change Password',
+        operation_description='For changing the password of the logged-in user.',
         responses={
             200: openapi.Response('Password changed successfully.'),
             400: openapi.Response('Bad Request'),
@@ -203,6 +221,8 @@ class UserForgotPasswordView(APIView):
     permission_classes = (AllowAny,)
     @swagger_auto_schema(
         request_body=UserForgotPasswordSerializer,
+        operation_summary='Forgot Password',
+        operation_description='For sending an OTP to the user for resetting the password.',
         responses={
             200: openapi.Response('OTP sent successfully.'),
             400: openapi.Response('Bad Request')
@@ -221,6 +241,8 @@ class UserResetPasswordView(APIView):
     permission_classes = (AllowAny,)
     @swagger_auto_schema(
         request_body=UserResetPasswordSerializer,
+        operation_summary='Reset Password',
+        operation_description='For resetting the password of the user.',
         responses={
             200: openapi.Response('Password reset successfully.'),
             400: openapi.Response('Bad Request')
@@ -244,6 +266,8 @@ class UserResetPasswordView(APIView):
 class OrderListCreateView(APIView):
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
+        operation_summary='Get order list',
+        operation_description='For fetching the list of all orders.',
         responses={
             200: openapi.Response('Order list fetched successfully.'),
             400: openapi.Response('Bad Request'),
@@ -268,6 +292,8 @@ class OrderListCreateView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     @swagger_auto_schema(
         request_body=OrderSerializer,
+        operation_summary='Create order',
+        operation_description='For creating a new order.',
         responses={
             201: openapi.Response('Order created successfully.'),
             400: openapi.Response('Bad Request')
@@ -292,6 +318,8 @@ class OrderListCreateView(APIView):
 class OrderDetailView(APIView):
     permission_classes = (IsAuthenticated,)
     @swagger_auto_schema(
+        operation_summary='Get order details',
+        operation_description='For fetching the details of an order.',
         responses={
             200: openapi.Response('Order details fetched successfully.'),
             400: openapi.Response('Bad Request'),
@@ -318,6 +346,8 @@ class OrderDetailView(APIView):
         return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
     @swagger_auto_schema(
         request_body=OrderSerializer,
+        operation_summary='Update order details',
+        operation_description='For updating the details of an order.',
         responses={
             200: openapi.Response('Order details updated successfully.'),
             400: openapi.Response('Bad Request'),
@@ -340,6 +370,8 @@ class OrderDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
     @swagger_auto_schema(
+        operation_summary='Delete order',
+        operation_description='For deleting an order.',
         responses={
             200: openapi.Response('Order deleted successfully.'),
             400: openapi.Response('Bad Request'),
