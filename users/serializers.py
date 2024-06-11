@@ -1,5 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
+
+from drugs.serializers import DrugSerializer
 from .models import CustomUser, OrderModel, OrderItemModel
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -154,14 +156,16 @@ class UserResetPasswordSerializer(serializers.Serializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    drug_details = DrugSerializer(source='drug', read_only=True)
     class Meta:
         model = OrderItemModel
-        fields = ('id', 'drug', 'quantity', 'price')
+        fields = ('id', 'drug', 'quantity', 'price', 'drug_details')
         extra_kwargs = {
             'id': {'read_only': True},
             'drug': {'required': True},
             'quantity': {'required': True},
             'price': {'required': True},
+            'drug_details': {'read_only': True},
         }
 
 
