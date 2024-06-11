@@ -24,3 +24,5 @@ services:
 
 volumes:
   redis_data:
+  static:
+  media:
