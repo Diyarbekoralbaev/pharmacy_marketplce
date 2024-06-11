@@ -164,3 +164,37 @@ class DrugSearchView(APIView):
         serializer = DrugSerializer(drugs, many=True)
         return Response(serializer.data)
     
+
+class DrugGetCategoriesView(APIView):
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('List of drug categories fetched successfully.'),
+            400: openapi.Response('Bad Request')
+        }
+    )
+    def get(self, request):
+        categories = Drug.objects.values_list('category', flat=True).distinct()
+        return Response(categories)
+
+
+class DrugSellersDrugsView(APIView):
+    permission_classes = (IsAuthenticated,)
+    @swagger_auto_schema(
+        operation_summary='Get drugs by seller',
+        operation_description='Get drugs by seller',
+        responses={
+            200: openapi.Response('List of drugs fetched successfully.'),
+            400: openapi.Response('Bad Request'),
+            403: openapi.Response('Forbidden'),
+        }
+    )
+    def get(self, request):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if request_user.role == 'buyer':
+            return Response({'error': 'You do not have any drugs, because you are a buyer.'}, status=status.HTTP_403_FORBIDDEN)
+        drugs = Drug.objects.filter(seller=request_user)
+        serializer = DrugSerializer(drugs, many=True)
+        return Response(serializer.data)
