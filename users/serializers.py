@@ -196,3 +196,13 @@ class OrderSerializer(serializers.ModelSerializer):
         order.save()
         cache.delete('drugs')
         return order
+
+
+class DeleteItemFromOrderSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    item_id = serializers.IntegerField()
+
+    def validate_order_id(self, value):
+        if not OrderModel.objects.filter(pk=value).exists():
+            raise serializers.ValidationError('Order not found.')
+        return value
