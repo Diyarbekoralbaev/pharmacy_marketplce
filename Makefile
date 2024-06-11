@@ -19,3 +19,6 @@ remove:
 
 rmall:
 	docker system prune -a --volumes
+
+web-logs:
+	docker-compose logs -f web
