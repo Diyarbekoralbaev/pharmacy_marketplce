@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import UserSerializer, LoginSerializer, UserChangeProfileSerializer, UserForgotPasswordSerializer, UserResetPasswordSerializer, \
-    OrderSerializer, OrderItemSerializer
+    OrderSerializer, OrderItemSerializer, DeleteItemFromOrderSerializer
 from .models import CustomUser, OrderModel, OrderItemModel
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_yasg.utils import swagger_auto_schema
@@ -396,3 +396,48 @@ class OrderDetailView(APIView):
             order.delete()
             return Response('Order deleted successfully.', status=status.HTTP_200_OK)
         return Response('You are not authorized to view this page.', status=status.HTTP_401_UNAUTHORIZED)
+
+
+class DeleteItemFromOrderView(APIView):
+    permission_classes = (IsAuthenticated,)
+    @swagger_auto_schema(
+        request_body=DeleteItemFromOrderSerializer,
+        operation_summary='Delete item from order',
+        operation_description='For deleting an item from an order.',
+        responses={
+            200: openapi.Response('Item deleted successfully.'),
+            400: openapi.Response('Bad Request'),
+            401: openapi.Response('Authentication failed.'),
+            404: openapi.Response('Order not found.'),
+            500: openapi.Response('An error occurred.')
+        },
+        tags=['Orders']
+    )
+    def post(self, request):
+        try:
+            request_user = request.user
+        except Exception as e:
+            return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        serializer = DeleteItemFromOrderSerializer(data=request.data)
+        if serializer.is_valid():
+            if request_user.role in ['admin', 'seller']:
+                order_id = serializer.validated_data['order_id']
+                item_id = serializer.validated_data['item_id']
+                try:
+                    order = OrderModel.objects.get(pk=order_id)
+                except OrderModel.DoesNotExist:
+                    return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+                except Exception as e:
+                    return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                try:
+                    item = OrderItemModel.objects.get(pk=item_id)
+                except OrderItemModel.DoesNotExist:
+                    return Response({'error': 'Item not found.'}, status=status.HTTP_404_NOT_FOUND)
+                except Exception as e:
+                    return Response({'error': 'An error occurred.', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                if order.user != request_user and request_user.role != 'admin':
+                    return Response('This is not your order.', status=status.HTTP_401_UNAUTHORIZED)
+                order.total_price -= item.price
+                order.save()
+                item.delete()
+                return Response('Item deleted successfully.', status=status.HTTP_200_OK)
