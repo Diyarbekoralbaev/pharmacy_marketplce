@@ -15,5 +15,5 @@ urlpatterns = [
 
     path('orders/', OrderListCreateView.as_view(), name='order-list-create'),
     path('orders/<int:pk>/', OrderDetailView.as_view(), name='order-detail'),
-    path('orders/<int:pk>/items/', DeleteItemFromOrderView.as_view(), name='order-item-delete'),
+    path('orders/items/', DeleteItemFromOrderView.as_view(), name='order-item-delete'),
 ]
