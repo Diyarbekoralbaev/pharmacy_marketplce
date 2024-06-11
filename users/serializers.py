@@ -4,7 +4,7 @@ from rest_framework import serializers
 from drugs.serializers import DrugSerializer
 from .models import CustomUser, OrderModel, OrderItemModel
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from django.core.cache import cache
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -189,7 +189,10 @@ class OrderSerializer(serializers.ModelSerializer):
         total_price = 0
         for item_data in items_data:
             OrderItemModel.objects.create(order=order, **item_data)
+            cache_key = f'drug-{item_data["drug"].id}'
+            cache.delete(cache_key)
             total_price += item_data['price']
         order.total_price = total_price
         order.save()
+        cache.delete('drugs')
         return order
