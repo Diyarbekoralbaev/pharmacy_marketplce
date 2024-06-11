@@ -420,7 +420,7 @@ class DeleteItemFromOrderView(APIView):
             return Response({'error': 'Authentication failed.', 'message': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         serializer = DeleteItemFromOrderSerializer(data=request.data)
         if serializer.is_valid():
-            if request_user.role in ['admin', 'seller']:
+            if request_user.role in ['admin', 'buyer']:
                 order_id = serializer.validated_data['order_id']
                 item_id = serializer.validated_data['item_id']
                 try:
