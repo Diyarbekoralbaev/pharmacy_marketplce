@@ -133,6 +133,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError('Old password is incorrect.')
         if self.context['request'].user.check_password(data.get('new_password')):
             raise serializers.ValidationError('New password must be different from the old password.')
+        return data
 
 
 class UserForgotPasswordSerializer(serializers.Serializer):
