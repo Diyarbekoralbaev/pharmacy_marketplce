@@ -79,7 +79,7 @@ This project is open-sourced software licensed under the [MIT license](https://g
 ## Author
 - [Diyarbek Oralbaev](https://github.com//Diyarbekoralbaev/)
 - [Email](mailto:diyarbekdev@gmail.com)
-- [LinkedIn](https://www.linkedin.com/in/diyarbek-oralbaev-66a020316/)
+- [LinkedIn](https://www.linkedin.com/in/diyarbek-oralbaev/)
 - [Telegram](https://t.me/Diyarbek_Dev)
 
 ## Acknowledgements
