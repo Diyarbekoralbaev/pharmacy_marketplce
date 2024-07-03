@@ -92,6 +92,9 @@ This project is open-sourced software licensed under the [MIT license](https://g
 - [Redis](https://redis.io/)
 - [Django Cors Headers](https://pypi.org/project/django-cors-headers/)
 
+### Contributing
+Contributions are welcome! Fork the repository and create a pull request to contribute.
+
 ## Support
 For support, contact me from the links provided above.
 
